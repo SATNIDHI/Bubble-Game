@@ -1,1 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bubble Shooter Pro</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            overflow: hidden;
+            color: white;
+        }
+        
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .screen {
+            display: none;
+            width: 100%;
+            max-width: 800px;
+            text-align: center;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .game-title {
+            font-size: 4rem;
+            font-weight: bold;
+            margin-bottom: 2rem;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5);
+            background: linear-gradient(45deg, #FFD700, #FFA500, #FF6B6B);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .menu-button, .game-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 15px 30px;
+            margin: 10px;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            min-width: 200px;
+        }
+
+        .menu-button:hover, .game-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .game-container {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            max-width: 95vw;
+            max-height: 95vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        canvas {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 15px;
+            background: linear-gradient(to bottom, #87CEEB, #E0F6FF);
+            cursor: crosshair;
+            max-width: 100%;
+            max-height: 70vh;
+        }
+        
+        .ui {
+            text-align: center;
+            color: white;
+            margin-top: 15px;
+        }
+        
+        .game-stats {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .stat {
+            font-size: 18px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        .next-bubble {
+            margin: 10px 0;
+        }
+        
+        .controls {
+            font-size: 14px;
+            opacity: 0.8;
+            margin-top: 10px;
+        }
+
+        .leaderboard {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            backdrop-filter: blur(10px);
+        }
+
+        .leaderboard h3 {
+            margin-bottom: 15px;
+            font-size: 24px;
+        }
+
+        .leaderboard-entry {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            margin: 5px 0;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        .settings-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            backdrop-filter: blur(10px);
+        }
+
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 15px 0;
+        }
+
+        .setting-item select, .setting-item input {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+        }
+
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .game-over-screen {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            display: none;
+            z-index: 1000;
+        }
+
+        .pause-menu {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            display: none;
+            z-index: 1000;
+        }
+
+        @media (max-width: 768px) {
+            .game-title {
+                font-size: 2.5rem;
+            }
+            
+            .menu-button, .game-button {
+                font-size: 16px;
+                padding: 12px 25px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Main Menu -->
+        <div class="screen active" id="mainMenu">
+            <h1 class="game-title">🎯 BUBBLE SHOOTER PRO</h1>
+            <div>
+                <button class="menu-button" onclick="showScreen('gameScreen')">🎮 Play Game</button>
+                <button class="menu-button" onclick="showScreen('leaderboardScreen')">🏆 Leaderboard</button>
+                <button class="menu-button" onclick="showScreen('settingsScreen')">⚙️ Settings</button>
+                <button class="menu-button" onclick="showScreen('howToPlayScreen')">❓ How to Play</button>
+            </div>
+        </div>
+
+        <!-- Game Screen -->
+        <div class="screen" id="gameScreen">
+            <button class="back-button" onclick="pauseGame()">⏸️ Pause</button>
+            <div class="game-container">
+                <canvas id="gameCanvas" width="600" height="700"></canvas>
+                <div class="ui">
+                    <div class="game-stats">
+                        <div class="stat">Score: <span id="score">0</span></div>
+                        <div class="stat">Level: <span id="level">1</span></div>
+                        <div class="stat">Shots: <span id="shots">0</span></div>
+                    </div>
+                    <div class="next-bubble">Next: <span id="nextBubble" style="display: inline-block; width: 20px; height: 20px; border-radius: 50%;"></span></div>
+                    <div class="controls">Move mouse to aim • Click to shoot • P to pause</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Leaderboard Screen -->
+        <div class="screen" id="leaderboardScreen">
+            <button class="back-button" onclick="showScreen('mainMenu')">← Back</button>
+            <h2 style="margin-bottom: 30px;">🏆 Leaderboard</h2>
+            <div class="leaderboard">
+                <div id="leaderboardList"></div>
+                <button class="menu-button" onclick="clearLeaderboard()">Clear Scores</button>
+            </div>
+        </div>
+
+        <!-- Settings Screen -->
+        <div class="screen" id="settingsScreen">
+            <button class="back-button" onclick="showScreen('mainMenu')">← Back</button>
+            <h2 style="margin-bottom: 30px;">⚙️ Settings</h2>
+            <div class="settings-panel">
+                <div class="setting-item">
+                    <label>Difficulty:</label>
+                    <select id="difficulty">
+                        <option value="easy">Easy</option>
+                        <option value="normal" selected>Normal</option>
+                        <option value="hard">Hard</option>
+                    </select>
+                </div>
+                <div class="setting-item">
+                    <label>Sound Effects:</label>
+                    <input type="checkbox" id="soundEffects" checked>
+                </div>
+                <div class="setting-item">
+                    <label>Player Name:</label>
+                    <input type="text" id="playerName" placeholder="Enter your name" maxlength="15">
+                </div>
+                <button class="menu-button" onclick="saveSettings()">Save Settings</button>
+            </div>
+        </div>
+
+        <!-- How to Play Screen -->
+        <div class="screen" id="howToPlayScreen">
+            <button class="back-button" onclick="showScreen('mainMenu')">← Back</button>
+            <h2 style="margin-bottom: 30px;">❓ How to Play</h2>
+            <div class="settings-panel" style="text-align: left;">
+                <h3>🎯 Objective:</h3>
+                <p>Clear all bubbles from the playing field by matching 3 or more bubbles of the same color.</p>
+                
+                <h3 style="margin-top: 20px;">🎮 Controls:</h3>
+                <p>• Move your mouse to aim the bubble shooter</p>
+                <p>• Click to shoot a bubble</p>
+                <p>• Press P to pause the game</p>
+                
+                <h3 style="margin-top: 20px;">💯 Scoring:</h3>
+                <p>• Match 3+ bubbles: 100 points each</p>
+                <p>• Floating bubbles fall: 50 points each</p>
+                <p>• Chain reactions give bonus points</p>
+                
+                <h3 style="margin-top: 20px;">🎈 Special Features:</h3>
+                <p>• Bubbles bounce off walls</p>
+                <p>• Unconnected bubbles fall automatically</p>
+                <p>• Multiple difficulty levels</p>
+            </div>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div class="game-over-screen" id="gameOverScreen">
+            <h2>🎉 Game Over!</h2>
+            <p style="margin: 20px 0;">Final Score: <span id="finalScore">0</span></p>
+            <p style="margin: 20px 0;">Level Reached: <span id="finalLevel">1</span></p>
+            <button class="game-button" onclick="restartGame()">Play Again</button>
+            <button class="game-button" onclick="showScreen('mainMenu')">Main Menu</button>
+        </div>
+
+        <!-- Pause Menu -->
+        <div class="pause-menu" id="pauseMenu">
+            <h2>⏸️ Game Paused</h2>
+            <button class="game-button" onclick="resumeGame()">Resume</button>
+            <button class="game-button" onclick="restartGame()">Restart</button>
+            <button class="game-button" onclick="showScreen('mainMenu')">Main Menu</button>
+        </div>
+    </div>
+
+    <script>
+        // Game state
+        let gameState = {
+            currentScreen: 'mainMenu',
+            gameActive: false,
+            gamePaused: false,
+            score: 0,
+            level: 1,
+            shots: 0,
+            difficulty: 'normal',
+            soundEnabled: true,
+            playerName: 'Player'
+        };
+
+        // Game variables
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const levelElement = document.getElementById('level');
+        const shotsElement = document.getElementById('shots');
+        const nextBubbleElement = document.getElementById('nextBubble');
+
+        let bubbles = [];
+        let shooter = {
+            x: canvas.width / 2,
+            y: canvas.height - 50,
+            angle: -Math.PI / 2,
+            currentBubble: null,
+            nextBubble: null
+        };
+        let activeBubble = null;
+
+        // High contrast bubble colors
+        const colors = [
+            '#FF0000',  // Bright Red
+            '#00FF00',  // Bright Green  
+            '#0000FF',  // Bright Blue
+            '#FFFF00',  // Bright Yellow
+            '#FF00FF',  // Bright Magenta
+            '#00FFFF',  // Bright Cyan
+            '#FF8000',  // Bright Orange
+            '#800080'   // Dark Purple
+        ];
+
+        const BUBBLE_RADIUS = 22;
+        const GRID_WIDTH = 44;
+        const GRID_HEIGHT = 38;
+        const ROWS = 8;
+        const COLS = 13;
+
+        // Bubble class
+        class Bubble {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.radius = BUBBLE_RADIUS;
+                this.vx = 0;
+                this.vy = 0;
+                this.speed = 10;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+                ctx.shadowBlur = 8;
+                ctx.shadowOffsetX = 2;
+                ctx.shadowOffsetY = 2;
+                
+                // Main bubble with darker border for better contrast
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Dark border for contrast
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                // Bright shine effect
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                ctx.beginPath();
+                ctx.arc(this.x - 6, this.y - 6, this.radius * 0.3, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.restore();
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+            }
+
+            setVelocity(angle) {
+                this.vx = Math.cos(angle) * this.speed;
+                this.vy = Math.sin(angle) * this.speed;
+            }
+        }
+
+        // Screen management
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            document.getElementById(screenId).classList.add('active');
+            gameState.currentScreen = screenId;
+
+            // Hide overlays
+            document.getElementById('gameOverScreen').style.display = 'none';
+            document.getElementById('pauseMenu').style.display = 'none';
+
+            if (screenId === 'gameScreen') {
+                startGame();
+            } else {
+                gameState.gameActive = false;
+            }
+
+            if (screenId === 'leaderboardScreen') {
+                updateLeaderboard();
+            }
+        }
+
+        // Settings management
+        function saveSettings() {
+            gameState.difficulty = document.getElementById('difficulty').value;
+            gameState.soundEnabled = document.getElementById('soundEffects').checked;
+            gameState.playerName = document.getElementById('playerName').value || 'Player';
+            
+            const settings = {
+                difficulty: gameState.difficulty,
+                soundEnabled: gameState.soundEnabled,
+                playerName: gameState.playerName
+            };
+            
+            // Store settings in memory
+            window.gameSettings = settings;
+            alert('Settings saved!');
+        }
+
+        function loadSettings() {
+            if (window.gameSettings) {
+                const settings = window.gameSettings;
+                gameState.difficulty = settings.difficulty || 'normal';
+                gameState.soundEnabled = settings.soundEnabled !== false;
+                gameState.playerName = settings.playerName || 'Player';
+                
+                document.getElementById('difficulty').value = gameState.difficulty;
+                document.getElementById('soundEffects').checked = gameState.soundEnabled;
+                document.getElementById('playerName').value = gameState.playerName;
+            }
+        }
+
+        // Leaderboard management
+        function updateLeaderboard() {
+            const leaderboard = window.gameLeaderboard || [];
+            const leaderboardList = document.getElementById('leaderboardList');
+            
+            if (leaderboard.length === 0) {
+                leaderboardList.innerHTML = '<p style="text-align: center; opacity: 0.7;">No scores yet. Play your first game!</p>';
+                return;
+            }
+
+            leaderboard.sort((a, b) => b.score - a.score);
+            
+            leaderboardList.innerHTML = leaderboard.slice(0, 10).map((entry, index) => `
+                <div class="leaderboard-entry">
+                    <span>${index + 1}. ${entry.name}</span>
+                    <span>Level ${entry.level} - ${entry.score} pts</span>
+                </div>
+            `).join('');
+        }
+
+        function addToLeaderboard(score, level) {
+            if (!window.gameLeaderboard) {
+                window.gameLeaderboard = [];
+            }
+            
+            window.gameLeaderboard.push({
+                name: gameState.playerName,
+                score: score,
+                level: level,
+                date: new Date().toLocaleDateString()
+            });
+        }
+
+        function clearLeaderboard() {
+            if (confirm('Are you sure you want to clear all scores?')) {
+                window.gameLeaderboard = [];
+                updateLeaderboard();
+            }
+        }
+
+        // Game functions
+        function getRandomColor() {
+            const availableColors = colors.slice(0, Math.min(colors.length, 4 + Math.floor(gameState.level / 2)));
+            return availableColors[Math.floor(Math.random() * availableColors.length)];
+        }
+
+        function startGame() {
+            gameState.gameActive = true;
+            gameState.gamePaused = false;
+            gameState.score = 0;
+            gameState.level = 1;
+            gameState.shots = 0;
+            
+            updateUI();
+            initGame();
+            gameLoop();
+        }
+
+        function initGame() {
+            bubbles = [];
+            createBubbleGrid();
+            
+            shooter.currentBubble = new Bubble(shooter.x, shooter.y, getRandomColor());
+            shooter.nextBubble = new Bubble(0, 0, getRandomColor());
+            updateNextBubbleDisplay();
+        }
+
+        function createBubbleGrid() {
+            bubbles = [];
+            const rows = Math.min(6, 4 + Math.floor(gameState.level / 3));
+            
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col < COLS; col++) {
+                    const spawnChance = gameState.difficulty === 'easy' ? 0.7 : 
+                                      gameState.difficulty === 'normal' ? 0.75 : 0.8;
+                    
+                    if (Math.random() < spawnChance) {
+                        const offsetX = (row % 2 === 1) ? GRID_WIDTH / 2 : 0;
+                        const x = col * GRID_WIDTH + BUBBLE_RADIUS + offsetX + 20;
+                        const y = row * GRID_HEIGHT + BUBBLE_RADIUS + 40;
+                        
+                        if (x + BUBBLE_RADIUS <= canvas.width - 20) {
+                            bubbles.push(new Bubble(x, y, getRandomColor()));
+                        }
+                    }
+                }
+            }
+        }
+
+        function updateUI() {
+            scoreElement.textContent = gameState.score;
+            levelElement.textContent = gameState.level;
+            shotsElement.textContent = gameState.shots;
+        }
+
+        function updateNextBubbleDisplay() {
+            nextBubbleElement.style.backgroundColor = shooter.nextBubble.color;
+        }
+
+        // Game controls
+        canvas.addEventListener('mousemove', (e) => {
+            if (!gameState.gameActive || gameState.gamePaused) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const mouseX = (e.clientX - rect.left) * scaleX;
+            const mouseY = (e.clientY - rect.top) * scaleY;
+            
+            if (mouseY < shooter.y - 20) {
+                shooter.angle = Math.atan2(mouseY - shooter.y, mouseX - shooter.x);
+            }
+        });
+
+        canvas.addEventListener('click', () => {
+            if (!gameState.gameActive || gameState.gamePaused) return;
+            
+            if (!activeBubble && shooter.currentBubble) {
+                shoot();
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'p' || e.key === 'P') {
+                if (gameState.currentScreen === 'gameScreen') {
+                    if (gameState.gamePaused) {
+                        resumeGame();
+                    } else {
+                        pauseGame();
+                    }
+                }
+            }
+        });
+
+        function shoot() {
+            activeBubble = new Bubble(shooter.x, shooter.y, shooter.currentBubble.color);
+            activeBubble.setVelocity(shooter.angle);
+            
+            shooter.currentBubble = shooter.nextBubble;
+            shooter.currentBubble.x = shooter.x;
+            shooter.currentBubble.y = shooter.y;
+            shooter.nextBubble = new Bubble(0, 0, getRandomColor());
+            updateNextBubbleDisplay();
+            
+            gameState.shots++;
+            updateUI();
+        }
+
+        function pauseGame() {
+            gameState.gamePaused = true;
+            document.getElementById('pauseMenu').style.display = 'block';
+        }
+
+        function resumeGame() {
+            gameState.gamePaused = false;
+            document.getElementById('pauseMenu').style.display = 'none';
+        }
+
+        function restartGame() {
+            document.getElementById('gameOverScreen').style.display = 'none';
+            document.getElementById('pauseMenu').style.display = 'none';
+            startGame();
+        }
+
+        function gameOver() {
+            gameState.gameActive = false;
+            addToLeaderboard(gameState.score, gameState.level);
+            
+            document.getElementById('finalScore').textContent = gameState.score;
+            document.getElementById('finalLevel').textContent = gameState.level;
+            document.getElementById('gameOverScreen').style.display = 'block';
+        }
+
+        // Game logic
+        function snapToGrid(x, y) {
+            let bestX = x;
+            let bestY = y;
+            let minDistance = Infinity;
+            
+            for (let row = 0; row < ROWS; row++) {
+                for (let col = 0; col < COLS; col++) {
+                    const offsetX = (row % 2 === 1) ? GRID_WIDTH / 2 : 0;
+                    const gridX = col * GRID_WIDTH + BUBBLE_RADIUS + offsetX + 20;
+                    const gridY = row * GRID_HEIGHT + BUBBLE_RADIUS + 40;
+                    
+                    if (gridX + BUBBLE_RADIUS <= canvas.width - 20) {
+                        let isEmpty = true;
+                        for (let bubble of bubbles) {
+                            const dx = bubble.x - gridX;
+                            const dy = bubble.y - gridY;
+                            if (Math.sqrt(dx * dx + dy * dy) < BUBBLE_RADIUS * 1.5) {
+                                isEmpty = false;
+                                break;
+                            }
+                        }
+                        
+                        if (isEmpty) {
+                            const dx = x - gridX;
+                            const dy = y - gridY;
+                            const distance = dx * dx + dy * dy;
+                            
+                            if (distance < minDistance) {
+                                minDistance = distance;
+                                bestX = gridX;
+                                bestY = gridY;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            return { x: bestX, y: bestY };
+        }
+
+        function checkCollisions() {
+            if (!activeBubble) return;
+
+            // Wall collisions
+            if (activeBubble.x - activeBubble.radius <= 0 || activeBubble.x + activeBubble.radius >= canvas.width) {
+                activeBubble.vx = -activeBubble.vx;
+                activeBubble.x = Math.max(activeBubble.radius, Math.min(canvas.width - activeBubble.radius, activeBubble.x));
+            }
+
+            // Bubble collisions
+            for (let bubble of bubbles) {
+                const dx = activeBubble.x - bubble.x;
+                const dy = activeBubble.y - bubble.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance < activeBubble.radius + bubble.radius - 5) {
+                    const snapPos = snapToGrid(activeBubble.x, activeBubble.y);
+                    const newBubble = new Bubble(snapPos.x, snapPos.y, activeBubble.color);
+                    bubbles.push(newBubble);
+                    
+                    checkMatches(newBubble);
+                    activeBubble = null;
+                    return;
+                }
+            }
+
+            // Top collision
+            if (activeBubble.y - activeBubble.radius <= 40) {
+                const snapPos = snapToGrid(activeBubble.x, 40 + BUBBLE_RADIUS);
+                const newBubble = new Bubble(snapPos.x, snapPos.y, activeBubble.color);
+                bubbles.push(newBubble);
+                
+                checkMatches(newBubble);
+                activeBubble = null;
+            }
+        }
+
+        function checkMatches(startBubble) {
+            const visited = new Set();
+            const matches = [];
+            const stack = [startBubble];
+
+            while (stack.length > 0) {
+                const current = stack.pop();
+                const key = `${Math.round(current.x)}-${Math.round(current.y)}`;
+                
+                if (visited.has(key)) continue;
+                visited.add(key);
+                
+                if (current.color === startBubble.color) {
+                    matches.push(current);
+                    
+                    for (let bubble of bubbles) {
+                        if (bubble === current) continue;
+                        
+                        const dx = current.x - bubble.x;
+                        const dy = current.y - bubble.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        const bubbleKey = `${Math.round(bubble.x)}-${Math.round(bubble.y)}`;
+                        
+                        if (distance < BUBBLE_RADIUS * 2.2 && !visited.has(bubbleKey)) {
+                            stack.push(bubble);
+                        }
+                    }
+                }
+            }
+
+            if (matches.length >= 3) {
+                // Remove matched bubbles
+                for (let match of matches) {
+                    const index = bubbles.indexOf(match);
+                    if (index > -1) {
+                        bubbles.splice(index, 1);
+                    }
+                }
+                
+                gameState.score += matches.length * 100;
+                updateUI();
+                removeFloatingBubbles();
+                
+                // Check for level up
+                if (bubbles.length === 0) {
+                    gameState.level++;
+                    gameState.score += 1000; // Level completion bonus
+                    setTimeout(() => {
+                        initGame();
+                        updateUI();
+                    }, 1000);
+                }
+            }
+        }
+
+        function removeFloatingBubbles() {
+            const connected = new Set();
+            const stack = [];
+            
+            // Find all bubbles connected to the top
+            for (let bubble of bubbles) {
+                if (bubble.y <= 80) {
+                    stack.push(bubble);
+                }
+            }
+            
+            // Mark all connected bubbles
+            while (stack.length > 0) {
+                const current = stack.pop();
+                const key = `${Math.round(current.x)}-${Math.round(current.y)}`;
+                
+                if (connected.has(key)) continue;
+                connected.add(key);
+                
+                for (let bubble of bubbles) {
+                    if (bubble === current) continue;
+                    
+                    const dx = current.x - bubble.x;
+                    const dy = current.y - bubble.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    const bubbleKey = `${Math.round(bubble.x)}-${Math.round(bubble.y)}`;
+                    
+                    if (distance < BUBBLE_RADIUS * 2.2 && !connected.has(bubbleKey)) {
+                        stack.push(bubble);
+                    }
+                }
+            }
+            
+            // Find floating bubbles (not connected to top)
+            const floating = bubbles.filter(bubble => {
+                const key = `${Math.round(bubble.x)}-${Math.round(bubble.y)}`;
+                return !connected.has(key);
+            });
+            
+            // Remove floating bubbles
+            bubbles = bubbles.filter(bubble => {
+                const key = `${Math.round(bubble.x)}-${Math.round(bubble.y)}`;
+                return connected.has(key);
+            });
+            
+            // Award points for floating bubbles
+            if (floating.length > 0) {
+                gameState.score += floating.length * 50;
+                updateUI();
+            }
+        }
+
+        function drawShooter() {
+            // Draw cannon base
+            ctx.fillStyle = '#34495e';
+            ctx.fillRect(shooter.x - 25, shooter.y, 50, 25);
+            
+            // Draw cannon barrel
+            ctx.save();
+            ctx.translate(shooter.x, shooter.y);
+            ctx.rotate(shooter.angle);
+            ctx.fillStyle = '#2c3e50';
+            ctx.fillRect(0, -6, 35, 12);
+            ctx.restore();
+            
+            // Draw current bubble
+            if (shooter.currentBubble) {
+                shooter.currentBubble.draw();
+            }
+        }
+
+        function drawAimLine() {
+            if (!shooter.currentBubble) return;
+            
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.lineWidth = 3;
+            ctx.setLineDash([8, 4]);
+            ctx.beginPath();
+            ctx.moveTo(shooter.x, shooter.y);
+            
+            let currentX = shooter.x;
+            let currentY = shooter.y;
+            let currentAngle = shooter.angle;
+            
+            for (let i = 0; i < 30; i++) {
+                const nextX = currentX + Math.cos(currentAngle) * 10;
+                const nextY = currentY + Math.sin(currentAngle) * 10;
+                
+                if (nextX <= BUBBLE_RADIUS || nextX >= canvas.width - BUBBLE_RADIUS) {
+                    currentAngle = Math.PI - currentAngle;
+                }
+                
+                currentX = Math.max(BUBBLE_RADIUS, Math.min(canvas.width - BUBBLE_RADIUS, nextX));
+                currentY = nextY;
+                
+                if (currentY <= 40) break;
+                
+                ctx.lineTo(currentX, currentY);
+            }
+            
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        function checkGameOver() {
+            // Check if any bubble is too low
+            for (let bubble of bubbles) {
+                if (bubble.y >= canvas.height - 150) {
+                    gameOver();
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function gameLoop() {
+            if (!gameState.gameActive || gameState.gamePaused) {
+                if (gameState.gameActive) {
+                    requestAnimationFrame(gameLoop);
+                }
+                return;
+            }
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            if (activeBubble) {
+                activeBubble.update();
+                activeBubble.draw();
+                checkCollisions();
+            }
+            
+            for (let bubble of bubbles) {
+                bubble.draw();
+            }
+            
+            drawShooter();
+            drawAimLine();
+            
+            // Check win condition
+            if (bubbles.length === 0) {
+                ctx.fillStyle = 'white';
+                ctx.font = '32px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('🎉 Level Complete! 🎉', canvas.width / 2, canvas.height / 2);
+                ctx.font = '18px Arial';
+                ctx.fillText('Next level starting...', canvas.width / 2, canvas.height / 2 + 40);
+            }
+            
+            // Check game over
+            if (!checkGameOver()) {
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        // Initialize the game
+        function initializeApp() {
+            loadSettings();
+            
+            // Prevent context menu on right click
+            canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+            
+            // Add keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && gameState.currentScreen === 'gameScreen') {
+                    if (gameState.gamePaused) {
+                        resumeGame();
+                    } else {
+                        pauseGame();
+                    }
+                }
+            });
+        }
+
+        // Start the application
+        window.addEventListener('load', initializeApp);
+    </script>
+</body>
+</html>
